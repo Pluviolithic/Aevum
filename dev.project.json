@@ -1,0 +1,17 @@
+{
+	"name": "Aevum",
+	"tree": {
+		"$className": "DataModel",
+		"ReplicatedStorage": {
+			"$className": "ReplicatedStorage",
+			"Packages": {
+				"$path": "Packages",
+				"$ignoreUnknownInstances": true,
+				"Aevum": {
+					"$path": "default.project.json",
+					"$ignoreUnknownInstances": true
+				}
+			}
+		}
+	}
+}

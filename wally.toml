@@ -4,3 +4,6 @@ version = "2.3.0"
 registry = "https://github.com/UpliftGames/wally-index"
 realm = "shared"
 license = "MIT"
+
+[dependencies]
+janitor = "howmanysmall/janitor@1.15.7"
