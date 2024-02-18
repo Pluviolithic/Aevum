@@ -11,20 +11,31 @@ local Aevum = {
 	registerChronometer = require(script.registerChronometer),
 	Alarm = require(script.Alarm),
 	Timer = require(script.Timer),
+	DiurnalClock = require(script.DiurnalClock),
+	_started = false,
 }
 
-RunService.Heartbeat:Connect(function(dt)
-	for UUID, Chronometer in pairs(Aevum._chronometers) do
-		if Chronometer:GetStatus() == "Paused" then
-			continue
-		end
-
-		Chronometer:_update(dt)
-
-		if Chronometer:GetStatus() == "Ended" then
-			Aevum._chronometers[UUID] = nil
-		end
+return function(config: { [string]: any })
+	if Aevum._started then
+		return Aevum
 	end
-end)
+	Aevum._started = true
 
-return Aevum
+	local runServiceEvent = config.RunServiceEvent or "Heartbeat"
+
+	RunService[runServiceEvent]:Connect(function(dt)
+		for UUID, Chronometer in pairs(Aevum._chronometers) do
+			if Chronometer:GetStatus() == "Paused" then
+				continue
+			end
+
+			Chronometer:_update(dt)
+
+			if Chronometer:GetStatus() == "Ended" then
+				Aevum._chronometers[UUID] = nil
+			end
+		end
+	end)
+
+	return Aevum
+end
