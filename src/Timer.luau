@@ -1,11 +1,11 @@
 local HttpService = game:GetService("HttpService")
 
+local Signal = require(script.Parent.Parent.Signal)
 local Status = require(script.Parent.Status)
 
 type TimerImpl = {
 	__index: TimerImpl,
 	new: (length: number, callback: () -> ()) -> Timer,
-	_callback: () -> (),
 	_update: (self: Timer, dt: number) -> (),
 	GetStatus: (self: Timer) -> Status.Status,
 	Pause: (self: Timer) -> (),
@@ -14,35 +14,49 @@ type TimerImpl = {
 	AssignName: (self: Timer, name: string) -> (),
 	GetName: (self: Timer) -> string,
 	GetUUID: (self: Timer) -> string,
+	Read: (self: Timer, formatStyle: string) -> string | number,
 }
 
 export type Timer = typeof(setmetatable(
-	{} :: { _length: number, _callback: () -> (), _status: Status.Status, _UUID: string, _name: string },
+	{} :: {
+		_length: number,
+		_remainingTime: number,
+		_status: Status.Status,
+		_UUID: string,
+		_name: string,
+		Ended: Signal.Signal<nil>,
+	},
 	{} :: TimerImpl
 ))
 
 local Timer = {} :: TimerImpl
 Timer.__index = Timer
 
-function Timer.new(length: number, callback: () -> ())
+function Timer.new(length: number)
 	local self = setmetatable({
 		_length = length,
-		_callback = callback,
+		_remainingTime = length,
 		_status = Status.Idle,
 		_UUID = HttpService:GenerateGUID(false),
 	}, Timer)
 
 	self._name = "Timer_" .. self._UUID
+	self.Ended = Signal.new()
 
 	return self
 end
 
 function Timer:_update(dt: number)
-	self._length -= dt
+	if self._status ~= Status.Running then
+		return
+	end
 
-	if self._length <= 0 then
+	self._remainingTime -= dt
+
+	if self._remainingTime <= 0 then
 		self._status = Status.Ended
-		task.spawn(self._callback)
+		self.Ended:Fire()
+		self.Ended:Destroy()
 	end
 end
 
@@ -72,6 +86,32 @@ end
 
 function Timer:GetUUID()
 	return self._UUID
+end
+
+function Timer:Read(formatStyle: string)
+	local hours = math.floor(self._remainingTime / 3600)
+	local minutes = math.floor((self._remainingTime % 3600) / 60)
+	local seconds = math.floor(self._remainingTime % 60)
+
+	if formatStyle == "HH:MM:SS" then
+		return string.format("%02d:%02d:%02d", hours, minutes, seconds)
+	elseif formatStyle == "HH:MM" then
+		return string.format("%02d:%02d", hours, minutes)
+	elseif "HH" then
+		return string.format("%02d", hours)
+	elseif "suffix" then
+		if hours >= 24 then
+			return `{hours // 24}d`
+		elseif hours > 0 then
+			return `{hours}h`
+		elseif minutes > 0 then
+			return `{minutes}m`
+		else
+			return `{seconds}s`
+		end
+	end
+
+	return self._remainingTime
 end
 
 return Timer
